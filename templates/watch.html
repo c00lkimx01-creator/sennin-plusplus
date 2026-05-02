@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+{% block title %}{{ video_title }} - 仙人Tube++{% endblock %}
+
+{% block head %}
+<style>
+#watch-layout {
+  display: flex; gap: 24px; padding: 16px;
+  max-width: 1800px; margin: 0 auto;
+}
+#player-col { flex: 1; min-width: 0; }
+#sidebar-col { width: 400px; flex-shrink: 0; }
+
+/* ===== PLAYER ===== */
+#player-wrap {
+  position: relative; width: 100%;
+  padding-bottom: 56.25%;
+  background: #000; border-radius: var(--radius);
+  overflow: hidden;
+}
+#player-wrap video, #player-wrap iframe {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  border: none;
+}
+#player-overlay {
+  position: absolute; inset: 0; background: #000;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 2;
+}
+#player-overlay .play-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(255,255,255,.15); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; transition: transform .15s, background .15s;
+}
+#player-overlay:hover .play-icon { transform: scale(1.1); background: rgba(255,0,0,.7); }
+#player-thumb {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 1;
+}
+
+/* Controls bar */
+#player-controls {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 0 4px; flex-wrap: wrap;
+}
+.ctrl-btn {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); padding: 6px 14px; border-radius: 8px;
+  font-size: 13px; cursor: pointer; transition: background .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.ctrl-btn:hover { background: var(--bg4); }
+.ctrl-btn.active { background: var(--text); color: var(--bg); }
+#quality-menu {
+  display: none; position: absolute;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 0; z-index: 10;
+  min-width: 140px; box-shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+#quality-menu.open { display: block; }
+.q-item {
+  padding: 8px 16px; cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.q-item:hover { background: var(--bg3); }
+.q-item.active::after { content: '✓'; color: var(--accent); }
+
+/* ===== VIDEO INFO ===== */
+#video-info { padding: 12px 0; }
+#video-title-text { font-size: 20px; font-weight: 700; line-height: 1.3; }
+#meta-row {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px; margin-top: 12px; padding: 12px 0;
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+#channel-row {
+  display: flex; align-items: center; gap: 12px;
+}
+#ch-icon {
+  width: 44px; height: 44px; border-radius: 50%;
+  object-fit: cover; background: var(--bg3);
+}
+#ch-name { font-size: 16px; font-weight: 600; }
+#ch-subs { font-size: 13px; color: var(--text2); }
+#action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.action-pill {
+  background: var(--bg3); border: none; color: var(--text);
+  padding: 8px 16px; border-radius: 20px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  transition: background .15s;
+}
+.action-pill:hover { background: var(--bg4); }
+
+/* ===== DESCRIPTION ===== */
+#desc-wrap {
+  background: var(--bg2); border-radius: var(--radius);
+  padding: 14px 16px; margin-top: 16px; cursor: pointer;
+}
+#desc-short { font-size: 14px; line-height: 1.6; }
+#desc-full { font-size: 14px; line-height: 1.6; display: none; }
+#desc-wrap.expanded #desc-short { display: none; }
+#desc-wrap.expanded #desc-full { display: block; }
+
+/* ===== COMMENTS ===== */
+#comments-section { margin-top: 24px; }
+.comment-item {
+  display: flex; gap: 12px; padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.comment-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--bg3); flex-shrink: 0; object-fit: cover;
+}
+.comment-body { flex: 1; min-width: 0; }
+.comment-author { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.comment-text { font-size: 14px; line-height: 1.5; color: var(--text); }
+.comment-like { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+/* ===== RECOMMENDED ===== */
+#sidebar-col h3 { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+.rec-card {
+  display: flex; gap: 8px; padding: 8px 0; cursor: pointer;
+  text-decoration: none; color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+.rec-card:hover .rec-title { color: var(--accent); }
+.rec-thumb {
+  position: relative; width: 160px; flex-shrink: 0;
+  border-radius: 8px; overflow: hidden; background: var(--bg3);
+}
+.rec-thumb img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+.rec-thumb .duration-badge { font-size: 11px; }
+.rec-meta { flex: 1; min-width: 0; }
+.rec-title { font-size: 14px; font-weight: 600; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rec-author { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+@media (max-width: 1100px) {
+  #watch-layout { flex-direction: column; }
+  #sidebar-col { width: 100%; }
+  .rec-thumb { width: 120px; }
+}
+@media (max-width: 640px) {
+  #watch-layout { padding: 0; }
+  #player-wrap { border-radius: 0; }
+  #video-info, #comments-section { padding: 12px; }
+  #video-title-text { font-size: 17px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="watch-layout">
+  <div id="player-col">
+
+    <!-- PLAYER -->
+    <div id="player-wrap">
+      {% if videourls %}
+      <img id="player-thumb" src="/proxy/thumb?v={{ videoid }}" alt="{{ video_title }}">
+      <div id="player-overlay" onclick="initPlayer()">
+        <div class="play-icon">▶</div>
+      </div>
+      <video id="main-video" style="display:none;" controls preload="metadata"
+             {% if videourls %}src="{{ videourls[0] }}"{% endif %}>
+      </video>
+      {% else %}
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text2);">
+        動画を再生できません
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- PLAYER CONTROLS -->
+    <div id="player-controls">
+      <div style="position:relative;">
+        <button class="ctrl-btn" onclick="toggleQualityMenu()">
+          🎬 画質: <span id="current-quality">自動</span>
+        </button>
+        <div id="quality-menu">
+          {% for s in streamUrls %}
+          <div class="q-item {% if loop.first %}active{% endif %}"
+               onclick="changeQuality('{{ s.url }}', '{{ s.resolution }}', this)">
+            {{ s.resolution or '?' }} ({{ s.format }})
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <button class="ctrl-btn" onclick="toggleLoop()" id="loop-btn">🔁 ループ</button>
+      <button class="ctrl-btn" id="pip-btn" onclick="togglePiP()">📺 PiP</button>
+      <a class="ctrl-btn" href="https://www.youtube.com/watch?v={{ videoid }}" target="_blank">▶ YouTubeで開く</a>
+    </div>
+
+    <!-- VIDEO INFO -->
+    <div id="video-info">
+      <h1 id="video-title-text">{{ video_title }}</h1>
+      <div id="meta-row">
+        <div id="channel-row">
+          <a href="/channel/{{ author_id }}">
+            <img id="ch-icon" src="{{ author_icon }}" alt="{{ author }}" onerror="this.style.background='var(--bg3)'">
+          </a>
+          <div>
+            <div id="ch-name"><a href="/channel/{{ author_id }}" style="color:var(--text);text-decoration:none;">{{ author }}</a></div>
+            <div id="ch-subs">{{ subscribers_count }}</div>
+          </div>
+        </div>
+        <div id="action-btns">
+          <button class="action-pill">👍 {{ '{:,}'.format(like_count | int) }}</button>
+          <button class="action-pill">👎</button>
+          <button class="action-pill" onclick="shareVideo()">🔗 共有</button>
+        </div>
+      </div>
+
+      <div id="desc-wrap" onclick="toggleDesc()">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:6px;">
+          {{ '{:,}'.format(view_count | int) }} 回視聴
+        </div>
+        <div id="desc-short">{{ description | striptags | truncate(120) }}... <span style="color:var(--text2);font-size:13px;">もっと見る</span></div>
+        <div id="desc-full">{{ description | safe }}</div>
+      </div>
+    </div>
+
+    <!-- COMMENTS -->
+    <div id="comments-section">
+      <h3 style="margin-bottom:16px;">コメント</h3>
+      {% for c in comments[:20] %}
+      <div class="comment-item">
+        {% if c.authorThumbnails %}
+        <img class="comment-avatar" src="{{ c.authorThumbnails[-1].url }}" alt="{{ c.author }}" onerror="this.style.background='var(--bg3)'">
+        {% else %}
+        <div class="comment-avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--text2);">{{ c.author[0] if c.author else '?' }}</div>
+        {% endif %}
+        <div class="comment-body">
+          <div class="comment-author">{{ c.author }} <span style="font-weight:400;color:var(--text2);font-size:12px;">{{ c.publishedText }}</span></div>
+          <div class="comment-text">{{ c.contentHtml | safe if c.contentHtml else c.content }}</div>
+          <div class="comment-like">👍 {{ c.likeCount or 0 }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      {% if not comments %}
+      <p style="color:var(--text2);font-size:14px;">コメントを読み込めませんでした。</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- RECOMMENDED -->
+  <aside id="sidebar-col">
+    <h3>次の動画</h3>
+    {% for rec in recommended_videos %}
+    <a href="/watch?v={{ rec.video_id }}" class="rec-card">
+      <div class="rec-thumb">
+        <img src="/proxy/thumb?v={{ rec.video_id }}" alt="{{ rec.title }}" loading="lazy">
+      </div>
+      <div class="rec-meta">
+        <div class="rec-title">{{ rec.title }}</div>
+        <div class="rec-author">{{ rec.author }}</div>
+        <div class="rec-author">{{ rec.view_count_text }}</div>
+      </div>
+    </a>
+    {% endfor %}
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const videoEl = document.getElementById('main-video');
+const overlay = document.getElementById('player-overlay');
+const streamUrls = {{ streamUrls | tojson }};
+let loopEnabled = localStorage.getItem('loop') === 'true';
+let isPlayerInit = false;
+
+// Auto-restore settings
+if (videoEl) {
+  videoEl.volume = parseFloat(localStorage.getItem('volume') || '1.0');
+  videoEl.loop = loopEnabled;
+  if (localStorage.getItem('autoplay') === 'true') {
+    initPlayer();
+  }
+}
+
+function initPlayer() {
+  if (isPlayerInit) return;
+  isPlayerInit = true;
+  overlay.style.display = 'none';
+  videoEl.style.display = 'block';
+  
+  // Select best quality based on settings
+  const prefQuality = localStorage.getItem('quality') || 'auto';
+  let best = streamUrls[0];
+  if (prefQuality !== 'auto') {
+    best = streamUrls.find(s => s.resolution === prefQuality) || streamUrls[0];
+  }
+  if (best) {
+    videoEl.src = best.url;
+    document.getElementById('current-quality').textContent = best.resolution || '?';
+  }
+  
+  videoEl.play().catch(() => {});
+  videoEl.focus();
+  document.getElementById('loop-btn').classList.toggle('active', loopEnabled);
+}
+
+function changeQuality(url, label, el) {
+  const t = videoEl.currentTime;
+  const playing = !videoEl.paused;
+  videoEl.src = url;
+  videoEl.currentTime = t;
+  if (playing) videoEl.play();
+  document.getElementById('current-quality').textContent = label || '?';
+  document.querySelectorAll('.q-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  toggleQualityMenu();
+  if (!isPlayerInit) { overlay.style.display = 'none'; videoEl.style.display = 'block'; isPlayerInit = true; }
+}
+
+function toggleQualityMenu() {
+  document.getElementById('quality-menu').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#quality-menu') && !e.target.closest('[onclick="toggleQualityMenu()"]'))
+    document.getElementById('quality-menu').classList.remove('open');
+});
+
+function toggleLoop() {
+  loopEnabled = !loopEnabled;
+  videoEl.loop = loopEnabled;
+  localStorage.setItem('loop', loopEnabled);
+  document.getElementById('loop-btn').classList.toggle('active', loopEnabled);
+}
+
+async function togglePiP() {
+  if (!document.pictureInPictureEnabled) return alert('PiPはサポートされていません');
+  if (document.pictureInPictureElement) await document.exitPictureInPicture();
+  else await videoEl.requestPictureInPicture();
+}
+
+function toggleDesc() {
+  document.getElementById('desc-wrap').classList.toggle('expanded');
+}
+
+function shareVideo() {
+  const url = window.location.href;
+  if (navigator.share) {
+    navigator.share({ title: document.title, url });
+  } else {
+    navigator.clipboard.writeText(url).then(() => alert('URLをコピーしました'));
+  }
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); isPlayerInit ? (videoEl.paused ? videoEl.play() : videoEl.pause()) : initPlayer(); }
+  if (e.code === 'ArrowRight') videoEl.currentTime += 10;
+  if (e.code === 'ArrowLeft') videoEl.currentTime -= 10;
+  if (e.code === 'ArrowUp') videoEl.volume = Math.min(1, videoEl.volume + 0.1);
+  if (e.code === 'ArrowDown') videoEl.volume = Math.max(0, videoEl.volume - 0.1);
+  if (e.code === 'KeyF') videoEl.requestFullscreen?.();
+  if (e.code === 'KeyM') videoEl.muted = !videoEl.muted;
+});
+</script>
+{% endblock %}

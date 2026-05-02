@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}{{ query }} - 仙人Tube++{% endblock %}
+
+{% block content %}
+<div class="chips-bar">
+  <a class="chip {% if type == 'video' or not type %}active{% endif %}" href="/search?q={{ query|urlencode }}&type=video">動画</a>
+  <a class="chip {% if type == 'short' %}active{% endif %}" href="/search?q={{ query|urlencode }}&type=short">ショート</a>
+  <a class="chip {% if type == 'channel' %}active{% endif %}" href="/search?q={{ query|urlencode }}&type=channel">チャンネル</a>
+  <a class="chip {% if type == 'playlist' %}active{% endif %}" href="/search?q={{ query|urlencode }}&type=playlist">プレイリスト</a>
+</div>
+
+{% if type == 'short' %}
+<!-- SHORTS GRID -->
+<div class="shorts-search-grid">
+{% for item in results %}
+{% if item.type == 'video' %}
+  {% set thumb = item.videoThumbnails[0].url if item.videoThumbnails else '/proxy/thumb?v=' + item.videoId %}
+  <a href="/shorts/{{ item.videoId }}" class="short-card">
+    <div class="short-thumb-wrap">
+      <img src="{{ thumb }}" alt="{{ item.title }}" loading="lazy" onerror="this.src='/proxy/thumb?v={{ item.videoId }}'">
+      {% if item.lengthSeconds %}
+      <span class="duration-badge">{{ item.lengthSeconds | int // 60 }}:{{ '%02d' % (item.lengthSeconds | int % 60) }}</span>
+      {% endif %}
+    </div>
+    <div class="short-info">
+      <p class="short-title">{{ item.title }}</p>
+      <p class="short-author">{{ item.author }}</p>
+    </div>
+  </a>
+{% endif %}
+{% endfor %}
+</div>
+
+{% elif type == 'channel' %}
+<!-- CHANNEL LIST -->
+<div style="max-width:800px; padding:16px;">
+{% for item in results %}
+{% if item.type == 'channel' %}
+  {% set avatar = item.authorThumbnails[-1].url if item.authorThumbnails else '' %}
+  <a href="/channel/{{ item.authorId }}" class="channel-result-card">
+    {% if avatar %}
+    <img src="{{ avatar }}" alt="{{ item.author }}" class="ch-avatar">
+    {% else %}
+    <div class="ch-avatar ch-avatar-placeholder">{{ item.author[0] if item.author else '?' }}</div>
+    {% endif %}
+    <div class="ch-info">
+      <div class="ch-name">{{ item.author }}</div>
+      <div class="ch-meta">{{ item.subCountText or '' }}</div>
+    </div>
+  </a>
+{% endif %}
+{% endfor %}
+</div>
+
+{% else %}
+<!-- VIDEO GRID -->
+<div class="video-grid">
+{% for item in results %}
+{% if item.type == 'video' %}
+  {% set thumb = item.videoThumbnails[0].url if item.videoThumbnails else '/proxy/thumb?v=' + item.videoId %}
+  {% set avatar = item.authorThumbnails[-1].url if item.authorThumbnails else '' %}
+  <div class="video-card">
+    <a href="/watch?v={{ item.videoId }}">
+      <div class="thumb-wrap">
+        <img src="{{ thumb }}" alt="{{ item.title }}" loading="lazy" onerror="this.src='/proxy/thumb?v={{ item.videoId }}'">
+        {% if item.lengthSeconds %}
+        <span class="duration-badge">{{ item.lengthSeconds | int // 3600 > 0 and (item.lengthSeconds|int//3600)|string + ':' or '' }}{{ '%02d' % (item.lengthSeconds|int % 3600 // 60) }}:{{ '%02d' % (item.lengthSeconds|int % 60) }}</span>
+        {% endif %}
+      </div>
+    </a>
+    <div class="video-info">
+      {% if avatar %}
+      <a href="/channel/{{ item.authorId }}"><img src="{{ avatar }}" class="channel-avatar" alt="{{ item.author }}" onerror="this.style.display='none'"></a>
+      {% endif %}
+      <div class="video-meta">
+        <a href="/watch?v={{ item.videoId }}" class="video-title">{{ item.title }}</a>
+        <div class="video-sub">
+          <a href="/channel/{{ item.authorId }}">{{ item.author }}</a>
+          {% if item.viewCount %} · {{ item.viewCount | int // 10000 }}万回視聴{% endif %}
+          {% if item.publishedText %} · {{ item.publishedText }}{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% elif item.type == 'playlist' %}
+  <div class="video-card">
+    <a href="/playlist?list={{ item.playlistId }}">
+      <div class="thumb-wrap" style="background:var(--bg3);">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:40px;">📋</div>
+        <span class="duration-badge">{{ item.videoCount or '?' }} 本</span>
+      </div>
+    </a>
+    <div class="video-info">
+      <div class="video-meta">
+        <a href="/playlist?list={{ item.playlistId }}" class="video-title">{{ item.title }}</a>
+        <div class="video-sub">プレイリスト · {{ item.author }}</div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% endfor %}
+</div>
+{% endif %}
+
+<!-- PAGINATION -->
+<div style="display:flex; gap:12px; justify-content:center; padding:24px 16px;">
+  {% if page > 1 %}
+  <a href="/search?q={{ query|urlencode }}&type={{ type }}&page={{ page - 1 }}" class="chip">← 前へ</a>
+  {% endif %}
+  <a href="/search?q={{ query|urlencode }}&type={{ type }}&page={{ page + 1 }}" class="chip">次へ →</a>
+</div>
+
+<style>
+.shorts-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px; padding: 16px;
+}
+.short-card { text-decoration: none; color: var(--text); display: block; }
+.short-thumb-wrap {
+  position: relative; padding-bottom: 177.78%;
+  border-radius: var(--radius); overflow: hidden; background: var(--bg3);
+}
+.short-thumb-wrap img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  transition: transform .2s;
+}
+.short-card:hover .short-thumb-wrap img { transform: scale(1.04); }
+.short-info { padding: 6px 2px; }
+.short-title { font-size: 13px; font-weight: 600; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.short-author { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+.channel-result-card {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px; border-radius: var(--radius);
+  text-decoration: none; color: var(--text);
+  transition: background .15s;
+}
+.channel-result-card:hover { background: var(--bg2); }
+.ch-avatar { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; }
+.ch-avatar-placeholder {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 700;
+}
+.ch-name { font-size: 18px; font-weight: 600; }
+.ch-meta { font-size: 13px; color: var(--text2); margin-top: 4px; }
+</style>
+{% endblock %}

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}仙人Tube++{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --bg2: #181818;
+      --bg3: #212121;
+      --bg4: #272727;
+      --border: #3f3f3f;
+      --text: #f1f1f1;
+      --text2: #aaaaaa;
+      --text3: #717171;
+      --accent: #ff0000;
+      --accent2: #cc0000;
+      --chip-bg: #272727;
+      --chip-text: #f1f1f1;
+      --sidebar-w: 240px;
+      --header-h: 56px;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+    [data-theme="light"] {
+      --bg: #ffffff;
+      --bg2: #f2f2f2;
+      --bg3: #e5e5e5;
+      --bg4: #d9d9d9;
+      --border: #e0e0e0;
+      --text: #0f0f0f;
+      --text2: #606060;
+      --text3: #909090;
+      --chip-bg: #e5e5e5;
+      --chip-text: #0f0f0f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== HEADER ===== */
+    #header {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--header-h);
+      background: var(--bg);
+      display: flex; align-items: center;
+      padding: 0 16px;
+      gap: 8px;
+      z-index: 1000;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; min-width: var(--sidebar-w); }
+    .menu-btn {
+      background: none; border: none; color: var(--text);
+      width: 40px; height: 40px; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 20px; transition: background .15s;
+    }
+    .menu-btn:hover { background: var(--bg3); }
+    .logo-link { display: flex; align-items: center; gap: 4px; text-decoration: none; }
+    .logo-icon { font-size: 24px; }
+    .logo-text {
+      font-size: 18px; font-weight: 700; color: var(--text);
+      letter-spacing: -0.5px;
+    }
+    .logo-text span { color: var(--accent); }
+
+    .header-center { flex: 1; display: flex; align-items: center; gap: 8px; max-width: 640px; margin: 0 auto; }
+    #search-form { display: flex; flex: 1; }
+    #search-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-right: none;
+      border-radius: 40px 0 0 40px;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #search-input:focus { border-color: #1c62b9; }
+    #search-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 0 40px 40px 0;
+      padding: 0 20px;
+      height: 40px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 18px;
+      transition: background .15s;
+    }
+    #search-btn:hover { background: var(--bg4); }
+
+    .header-right { display: flex; align-items: center; gap: 8px; min-width: 120px; justify-content: flex-end; }
+    .icon-btn {
+      background: none; border: none; color: var(--text);
+      width: 40px; height: 40px; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 20px; text-decoration: none; transition: background .15s;
+    }
+    .icon-btn:hover { background: var(--bg3); }
+
+    /* ===== SUGGEST DROPDOWN ===== */
+    #suggest-box {
+      position: absolute; top: var(--header-h); left: 0; right: 0;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      display: none; z-index: 999; max-height: 400px; overflow-y: auto;
+    }
+    .suggest-item {
+      padding: 10px 16px; cursor: pointer;
+      display: flex; align-items: center; gap: 12px;
+      color: var(--text); font-size: 14px;
+    }
+    .suggest-item:hover { background: var(--bg3); }
+    .suggest-item span { color: var(--text3); font-size: 16px; }
+
+    /* ===== SIDEBAR ===== */
+    #sidebar {
+      position: fixed; left: 0; top: var(--header-h);
+      width: var(--sidebar-w); height: calc(100vh - var(--header-h));
+      background: var(--bg);
+      overflow-y: auto; overflow-x: hidden;
+      padding: 12px 0;
+      transition: transform .25s ease, width .25s ease;
+      z-index: 900;
+    }
+    #sidebar.collapsed { width: 72px; }
+    #sidebar.mobile-open { transform: translateX(0) !important; }
+    .sidebar-section { padding: 8px 0; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+    .sidebar-section:last-child { border-bottom: none; }
+    .sidebar-section-label {
+      font-size: 13px; font-weight: 600; color: var(--text2);
+      padding: 8px 16px 4px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    #sidebar.collapsed .sidebar-section-label { display: none; }
+    .nav-item {
+      display: flex; align-items: center; gap: 16px;
+      padding: 10px 16px; cursor: pointer; border-radius: 10px; margin: 0 8px;
+      text-decoration: none; color: var(--text); font-size: 14px; font-weight: 500;
+      transition: background .15s; white-space: nowrap;
+    }
+    .nav-item:hover { background: var(--bg3); }
+    .nav-item.active { background: var(--bg3); font-weight: 700; }
+    .nav-icon { font-size: 20px; min-width: 24px; text-align: center; }
+    #sidebar.collapsed .nav-label { display: none; }
+
+    /* ===== MAIN ===== */
+    #main {
+      margin-top: var(--header-h);
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      transition: margin-left .25s ease;
+    }
+    #main.sidebar-collapsed { margin-left: 72px; }
+    @media (max-width: 768px) {
+      #sidebar { transform: translateX(-100%); width: var(--sidebar-w) !important; }
+      #sidebar.mobile-open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,.5); }
+      #main { margin-left: 0 !important; }
+      .logo-text { display: none; }
+      #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 899; }
+      #overlay.show { display: block; }
+    }
+
+    /* ===== SETTINGS PANEL ===== */
+    #settings-panel {
+      position: fixed; right: 0; top: var(--header-h);
+      width: 320px; height: calc(100vh - var(--header-h));
+      background: var(--bg2); border-left: 1px solid var(--border);
+      z-index: 950; transform: translateX(100%);
+      transition: transform .3s ease;
+      overflow-y: auto; padding: 16px;
+    }
+    #settings-panel.open { transform: translateX(0); }
+    .settings-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+    .settings-group { margin-bottom: 24px; }
+    .settings-group-label { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; }
+    .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+    .settings-row label { font-size: 14px; color: var(--text); }
+    .toggle-switch {
+      position: relative; width: 44px; height: 24px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: var(--bg4);
+      border-radius: 24px; cursor: pointer; transition: background .2s;
+    }
+    .toggle-slider:before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: white; left: 3px; top: 3px;
+      transition: transform .2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+    .settings-select {
+      background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); padding: 6px 10px; border-radius: 8px;
+      font-size: 14px; cursor: pointer; outline: none;
+    }
+    .close-btn {
+      background: none; border: none; color: var(--text);
+      cursor: pointer; font-size: 20px; padding: 4px;
+    }
+
+    /* ===== FOOTER ===== */
+    #footer {
+      text-align: center; padding: 24px 16px;
+      color: var(--text3); font-size: 12px;
+      border-top: 1px solid var(--border);
+      margin-left: var(--sidebar-w);
+      transition: margin-left .25s ease;
+    }
+    #footer.sidebar-collapsed { margin-left: 72px; }
+    #footer a { color: var(--text2); text-decoration: none; }
+    #footer a:hover { text-decoration: underline; }
+    @media (max-width: 768px) { #footer { margin-left: 0; } }
+
+    /* ===== CHIPS ===== */
+    .chips-bar {
+      display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px 8px;
+      scrollbar-width: none;
+    }
+    .chips-bar::-webkit-scrollbar { display: none; }
+    .chip {
+      background: var(--chip-bg); color: var(--chip-text);
+      border-radius: 8px; padding: 6px 14px;
+      font-size: 14px; font-weight: 500; white-space: nowrap;
+      cursor: pointer; text-decoration: none; border: none;
+      transition: background .15s, color .15s;
+    }
+    .chip:hover, .chip.active { background: var(--text); color: var(--bg); }
+
+    /* ===== VIDEO CARD ===== */
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px; padding: 16px;
+    }
+    .video-card { cursor: pointer; }
+    .video-card a { text-decoration: none; color: inherit; display: block; }
+    .thumb-wrap {
+      position: relative; width: 100%;
+      padding-bottom: 56.25%;
+      border-radius: var(--radius); overflow: hidden; background: var(--bg3);
+    }
+    .thumb-wrap img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; transition: transform .2s;
+    }
+    .video-card:hover .thumb-wrap img { transform: scale(1.03); }
+    .duration-badge {
+      position: absolute; bottom: 6px; right: 6px;
+      background: rgba(0,0,0,.85); color: #fff;
+      font-size: 12px; font-weight: 600;
+      padding: 2px 6px; border-radius: 4px;
+    }
+    .video-info { display: flex; gap: 10px; padding: 10px 4px 4px; }
+    .channel-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--bg3); object-fit: cover; flex-shrink: 0;
+    }
+    .video-meta { flex: 1; min-width: 0; }
+    .video-title {
+      font-size: 14px; font-weight: 600; line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; color: var(--text);
+    }
+    .video-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+    .video-sub a { color: var(--text2); text-decoration: none; }
+    .video-sub a:hover { color: var(--text); }
+
+    /* ===== SPINNER ===== */
+    .spinner {
+      display: flex; justify-content: center; align-items: center; padding: 60px;
+    }
+    .spinner::after {
+      content: ''; width: 40px; height: 40px;
+      border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== UTILS ===== */
+    .fmt-num { font-variant-numeric: tabular-nums; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+<!-- Overlay for mobile sidebar -->
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="header-left">
+    <button class="menu-btn" onclick="toggleSidebar()" aria-label="メニュー">☰</button>
+    <a href="/" class="logo-link">
+      <span class="logo-icon">⛩️</span>
+      <span class="logo-text">仙人Tube<span>++</span></span>
+    </a>
+  </div>
+
+  <div class="header-center" style="position:relative;">
+    <form id="search-form" action="/search" method="get" autocomplete="off">
+      <input id="search-input" type="text" name="q" placeholder="検索" value="{{ request.query_params.get('q','') }}" oninput="onSearchInput(this.value)">
+      <button id="search-btn" type="submit">🔍</button>
+    </form>
+    <div id="suggest-box"></div>
+  </div>
+
+  <div class="header-right">
+    <button class="icon-btn" onclick="toggleSettings()" title="設定">⚙️</button>
+    <a href="/history" class="icon-btn" title="履歴">🕐</a>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-section">
+    <a href="/" class="nav-item {% if request.url.path == '/' %}active{% endif %}">
+      <span class="nav-icon">🏠</span><span class="nav-label">ホーム</span>
+    </a>
+    <a href="/search?q=shorts&type=short" class="nav-item">
+      <span class="nav-icon">📱</span><span class="nav-label">ショート</span>
+    </a>
+    <a href="/subscriptions" class="nav-item">
+      <span class="nav-icon">📺</span><span class="nav-label">登録チャンネル</span>
+    </a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">あなたへ</div>
+    <a href="/history" class="nav-item {% if request.url.path == '/history' %}active{% endif %}">
+      <span class="nav-icon">🕐</span><span class="nav-label">履歴</span>
+    </a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">その他</div>
+    <a href="/status" class="nav-item {% if request.url.path == '/status' %}active{% endif %}">
+      <span class="nav-icon">📡</span><span class="nav-label">サーバー状態</span>
+    </a>
+    <a href="/games" class="nav-item {% if request.url.path == '/games' %}active{% endif %}">
+      <span class="nav-icon">🎮</span><span class="nav-label">ゲーム</span>
+    </a>
+  </div>
+</nav>
+
+<!-- SETTINGS PANEL -->
+<aside id="settings-panel">
+  <div class="settings-title">
+    <span>設定</span>
+    <button class="close-btn" onclick="toggleSettings()">✕</button>
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-group-label">外観</div>
+    <div class="settings-row">
+      <label>ダークモード</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="dark-mode-toggle" checked onchange="toggleTheme(this)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-group-label">動画再生</div>
+    <div class="settings-row">
+      <label>再生方式</label>
+      <select class="settings-select" id="player-mode-select" onchange="savePlayerMode(this.value)">
+        <option value="native">ネイティブ (高速)</option>
+        <option value="hls">HLS ストリーム</option>
+        <option value="direct">ダイレクト URL</option>
+      </select>
+    </div>
+    <div class="settings-row">
+      <label>デフォルト画質</label>
+      <select class="settings-select" id="quality-select" onchange="saveSetting('quality', this.value)">
+        <option value="auto">自動</option>
+        <option value="1080p">1080p</option>
+        <option value="720p">720p</option>
+        <option value="480p">480p</option>
+        <option value="360p">360p</option>
+      </select>
+    </div>
+    <div class="settings-row">
+      <label>自動再生</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="autoplay-toggle" onchange="saveSetting('autoplay', this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="settings-row">
+      <label>ループ再生</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="loop-toggle" onchange="saveSetting('loop', this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="settings-row">
+      <label>デフォルト音量</label>
+      <select class="settings-select" id="volume-select" onchange="saveSetting('volume', this.value)">
+        <option value="1.0">100%</option>
+        <option value="0.8">80%</option>
+        <option value="0.6">60%</option>
+        <option value="0.4">40%</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-group-label">インスタンス</div>
+    <div class="settings-row">
+      <label>優先インスタンス</label>
+      <select class="settings-select" id="instance-select" onchange="saveSetting('instance', this.value)">
+        <option value="">自動</option>
+        <option value="https://inv.nadeko.net/">nadeko.net</option>
+        <option value="https://invidious.f5.si/">f5.si</option>
+        <option value="https://invidious.ritoge.com/">ritoge.com</option>
+        <option value="https://invidious.ducks.party/">ducks.party</option>
+        <option value="https://super8.absturztau.be/">absturztau.be</option>
+      </select>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main id="main">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- FOOTER -->
+<footer id="footer">
+  <p>© 2024 <strong>仙人Tube++</strong> — Powered by Invidious &nbsp;|&nbsp;
+    <a href="/status">サーバー状態</a> &nbsp;|&nbsp;
+    <a href="https://github.com/senninsugar/sennin-tube-plus" target="_blank">GitHub</a>
+  </p>
+  <p style="margin-top:6px; color: var(--text3);">@sugar 仙人tube fork</p>
+</footer>
+
+<script>
+// ===== SIDEBAR =====
+let sidebarCollapsed = window.innerWidth < 1200;
+const sidebar = document.getElementById('sidebar');
+const main = document.getElementById('main');
+const footer = document.getElementById('footer');
+const overlay = document.getElementById('overlay');
+
+function applySidebar() {
+  if (window.innerWidth <= 768) return;
+  if (sidebarCollapsed) {
+    sidebar.classList.add('collapsed');
+    main.classList.add('sidebar-collapsed');
+    footer.classList.add('sidebar-collapsed');
+  } else {
+    sidebar.classList.remove('collapsed');
+    main.classList.remove('sidebar-collapsed');
+    footer.classList.remove('sidebar-collapsed');
+  }
+}
+function toggleSidebar() {
+  if (window.innerWidth <= 768) {
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('show');
+  } else {
+    sidebarCollapsed = !sidebarCollapsed;
+    applySidebar();
+  }
+}
+function closeSidebar() {
+  sidebar.classList.remove('mobile-open');
+  overlay.classList.remove('show');
+}
+applySidebar();
+
+// ===== SETTINGS =====
+const panel = document.getElementById('settings-panel');
+function toggleSettings() { panel.classList.toggle('open'); }
+
+// Load settings
+function loadSettings() {
+  const theme = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('dark-mode-toggle').checked = theme === 'dark';
+
+  const mode = localStorage.getItem('playerMode') || 'native';
+  document.getElementById('player-mode-select').value = mode;
+
+  const q = localStorage.getItem('quality') || 'auto';
+  document.getElementById('quality-select').value = q;
+
+  const ap = localStorage.getItem('autoplay') === 'true';
+  document.getElementById('autoplay-toggle').checked = ap;
+
+  const lp = localStorage.getItem('loop') === 'true';
+  document.getElementById('loop-toggle').checked = lp;
+
+  const vol = localStorage.getItem('volume') || '1.0';
+  document.getElementById('volume-select').value = vol;
+
+  const inst = localStorage.getItem('instance') || '';
+  document.getElementById('instance-select').value = inst;
+}
+
+function toggleTheme(el) {
+  const t = el.checked ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('theme', t);
+}
+function savePlayerMode(val) { localStorage.setItem('playerMode', val); }
+function saveSetting(key, val) { localStorage.setItem(key, val); }
+
+loadSettings();
+
+// ===== SEARCH SUGGEST =====
+let suggestTimer = null;
+const suggestBox = document.getElementById('suggest-box');
+const searchInput = document.getElementById('search-input');
+
+function onSearchInput(val) {
+  clearTimeout(suggestTimer);
+  if (val.length < 2) { suggestBox.style.display = 'none'; return; }
+  suggestTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/suggest?keyword=' + encodeURIComponent(val));
+      const data = await res.json();
+      if (!data.length) { suggestBox.style.display = 'none'; return; }
+      suggestBox.innerHTML = data.slice(0, 8).map(s =>
+        `<div class="suggest-item" onclick="doSearch('${s.replace(/'/g,"\\'")}')">
+          <span>🔍</span>${s}
+        </div>`
+      ).join('');
+      suggestBox.style.display = 'block';
+    } catch {}
+  }, 200);
+}
+
+function doSearch(q) {
+  suggestBox.style.display = 'none';
+  window.location.href = '/search?q=' + encodeURIComponent(q);
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#search-form') && !e.target.closest('#suggest-box'))
+    suggestBox.style.display = 'none';
+});
+
+// ===== UTILS =====
+function formatDuration(sec) {
+  if (!sec) return '';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+function formatViews(n) {
+  if (n >= 1e8) return (n/1e8).toFixed(0) + '億';
+  if (n >= 1e4) return (n/1e4).toFixed(0) + '万';
+  return n?.toLocaleString() || '0';
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
